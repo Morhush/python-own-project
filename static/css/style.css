@@ -571,6 +571,7 @@ img.img-center {
 .flexslider #slider1:checked ~ .radio-label label:nth-child(1),
 .flexslider #slider2:checked ~ .radio-label label:nth-child(2){
 	background-color:  #496d04;
+	display: block;
 }
 
 /* Testimonial
