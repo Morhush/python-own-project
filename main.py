@@ -2,6 +2,7 @@ from flask import Flask, request, session, redirect, render_template
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import check_password_hash
 import os
+from datetime import datetime
 
 from flask_sqlalchemy.session import Session
 
@@ -30,6 +31,16 @@ class User(db.Model):
     def check_password(self, password):
         return check_password_hash(self.password, password)
 
+
+class News(db.Model):
+    __tablename__ = 'News'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(225), nullable=False)
+    image = db.Column(db.String(225), nullable=False)
+    text = db.Column(db.Text(), nullable=False)
+    created_on = db.Column(db.Date(), default=datetime.utcnow())
+    deleted = db.Column(db.Boolean, default=False)
+
 #створюєм базу даних
 with app.app_context():
     db.create_all()
@@ -42,9 +53,16 @@ def index():
     return render_template('index.html')
 
 
-@app.route('/about')
-def about():
-    return render_template('about.html')
+@app.route('/news')
+def news():
+    page = request.args.get('page', 1, type=int)
+    list_news = News.query.paginate(page=page, per_page=6)
+
+    for item in list_news:
+        if len(item.text) > 200:
+            item.text = item.text[:200] + ' ...'
+
+    return render_template('news.html', list_news=list_news)
 
 
 @app.route('/contact')
