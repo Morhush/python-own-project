@@ -1,3 +1,5 @@
+from os import abort
+
 from flask import Flask, request, session, redirect, render_template
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import check_password_hash
@@ -62,8 +64,23 @@ def news():
         if len(item.text) > 200:
             item.text = item.text[:200] + ' ...'
 
-    return render_template('news.html', list_news=list_news)
+    return render_template('news.html', list_news=list_news,
+                            user_id=session.get(SESSION_USER_ID))
 
+
+@app.route('/news/<int:news_id>')
+def news_detail(news_id):
+    news_item = News.query.filter_by(id=news_id).first()
+
+    if news_item:
+        news_item.text = news_item.text.replace('\n', '<br>')
+        return render_template('news_detail.html', news_item=news_item)
+
+    abort(404)
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html')
 
 @app.route('/contact')
 def contact():
@@ -103,10 +120,45 @@ def login():
 
     return render_template('login.html', message=message)
 
+
+@app.route('/add_news', methods=['GET', 'POST'])
+def add_news():
+    if SESSION_USER_ID not in session:
+        redirect('/login')
+
+    if request.method == 'POST':
+        id = int(request.form['id'])
+        name = request.form['name']
+        image = request.form['image']
+        text = request.form['text']
+
+        if id:
+            row = News.query.filter_by(id=id).first()
+            row.name = name
+            row.text = text
+            row.image = image
+        else:
+            row = News(name=name, text=text, image=image)
+
+        db.session.add(row)
+        db.session.commit()
+
+        redirect('/')
+
+    return render_template('add_news.html',
+                           message='Додати новину',
+                           id=0, name='', text='', image='')
+
+@app.route('/edit_news')
+def edit_news():
+    pass
+
+
 @app.route('/logout')
 def logout():
     session.pop(SESSION_USER_ID, None)
     return redirect('/')
+
 
 if __name__ == '__main__':
     app.run(debug=True)
